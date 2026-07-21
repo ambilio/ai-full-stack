@@ -1,0 +1,20 @@
+# docker-compose.yml — run the model server like a mini production service
+# Used in Lab Steps 4-6: secrets from .env, health checks, resource limits,
+# and manual replica scaling (what cloud autoscalers automate).
+services:
+  llm:
+    build: .
+    image: llm-server:v1
+    env_file: .env          # API_KEY comes from .env — never from the image
+    ports:
+      - "8080"              # container port only -> Docker assigns a random
+                            # host port per replica, so --scale works
+    mem_limit: 5g           # resource limits: undersized memory = OOM kill
+    cpus: 2
+    healthcheck:
+      test: ["CMD", "python", "-c",
+             "import urllib.request; urllib.request.urlopen('http://localhost:8080/health')"]
+      interval: 15s
+      timeout: 3s
+      retries: 20
+      start_period: 120s    # allow up to 2 min for model load before failures count

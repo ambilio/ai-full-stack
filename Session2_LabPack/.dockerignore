@@ -1,0 +1,8 @@
+# Keep junk out of the image (smaller + no secret leaks)
+.venv
+__pycache__
+*.log
+.git
+.env
+*.ipynb
+hf-cache-local
