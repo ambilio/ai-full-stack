@@ -10,6 +10,9 @@
 
 **Ubuntu / Debian VM:**
 ```bash
+docker --version
+docker compose version
+
 sudo apt update && sudo apt install -y docker.io docker-compose-v2
 sudo usermod -aG docker $USER     # run docker without sudo
 newgrp docker                     # apply group in current shell (or log out/in)
