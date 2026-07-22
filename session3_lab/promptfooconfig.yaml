@@ -1,0 +1,51 @@
+# Eval gate — the "unit tests" for prompt + model behavior.
+# Run:  export API_KEY=$(grep API_KEY .env | cut -d= -f2)
+#       npx --yes promptfoo@latest eval -c promptfooconfig.yaml
+# Exit code is non-zero when any test fails -> usable as a CI/hook gate.
+description: "Release gate: prompt quality tests against the stable server (v1)"
+
+prompts:
+  - file://prompts/prompt.txt
+
+providers:
+  - id: 'http://localhost:8081/generate'
+    config:
+      method: POST
+      headers:
+        Content-Type: application/json
+        X-API-Key: '{{ env.API_KEY }}'
+      body:
+        text: '{{ prompt }}'
+        max_tokens: 80
+      transformResponse: 'json.answer'
+
+tests:
+  - description: "Knows what UPI stands for"
+    vars:
+      question: "What does UPI stand for in Indian banking?"
+    assert:
+      - type: icontains-any
+        value: ["unified", "payment", "interface"]
+      - type: latency
+        threshold: 30000
+
+  - description: "Basic factual grounding"
+    vars:
+      question: "What is the capital city of India?"
+    assert:
+      - type: icontains
+        value: "delhi"
+
+  - description: "Follows a simple instruction"
+    vars:
+      question: "Is 2 + 2 equal to 4? Answer with yes or no."
+    assert:
+      - type: icontains
+        value: "yes"
+
+  - description: "Answers are not empty or runaway"
+    vars:
+      question: "Name one Indian public-sector bank."
+    assert:
+      - type: javascript
+        value: "output.trim().length > 0 && output.length < 2000"

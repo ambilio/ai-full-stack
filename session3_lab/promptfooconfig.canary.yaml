@@ -1,0 +1,49 @@
+# Canary gate — same tests, but aimed DIRECTLY at the v2 candidate (port 8082).
+# The canary script promotes or rolls back based on this eval's exit code.
+description: "Canary gate: same quality bar, evaluated against candidate v2"
+
+prompts:
+  - "{{question}}"        # raw question: v2's server-side PROMPT_PREFIX is under test
+
+providers:
+  - id: 'http://localhost:8082/generate'
+    config:
+      method: POST
+      headers:
+        Content-Type: application/json
+        X-API-Key: '{{ env.API_KEY }}'
+      body:
+        text: '{{ prompt }}'
+        max_tokens: 80
+      transformResponse: 'json.answer'
+
+tests:
+  - description: "Knows what UPI stands for"
+    vars:
+      question: "What does UPI stand for in Indian banking?"
+    assert:
+      - type: icontains-any
+        value: ["unified", "payment", "interface"]
+      - type: latency
+        threshold: 30000
+
+  - description: "Basic factual grounding"
+    vars:
+      question: "What is the capital city of India?"
+    assert:
+      - type: icontains
+        value: "delhi"
+
+  - description: "Follows a simple instruction"
+    vars:
+      question: "Is 2 + 2 equal to 4? Answer with yes or no."
+    assert:
+      - type: icontains
+        value: "yes"
+
+  - description: "Answers are not empty or runaway"
+    vars:
+      question: "Name one Indian public-sector bank."
+    assert:
+      - type: javascript
+        value: "output.trim().length > 0 && output.length < 2000"
