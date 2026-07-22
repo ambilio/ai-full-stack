@@ -1,0 +1,9 @@
+# Pinned versions = reproducible builds (supply-chain hygiene).
+# "pip install fastapi" today and next month can give different versions —
+# pinning means the image built during the capstone matches the one built today.
+fastapi==0.115.6
+uvicorn==0.34.0
+pydantic==2.10.4
+transformers==4.47.1
+torch==2.5.1
+huggingface_hub==0.27.0

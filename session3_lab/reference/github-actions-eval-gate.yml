@@ -1,0 +1,36 @@
+# REFERENCE ONLY — not executed in this local lab.
+# This is what the same eval gate looks like as a real GitHub Actions workflow.
+# With branch protection requiring the "eval-gate" check, a failing eval
+# literally blocks the merge button — identical logic to our pre-push hook.
+name: eval-gate
+
+on:
+  pull_request:
+    branches: [main]
+
+jobs:
+  eval-gate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Start model server
+        run: |
+          echo "API_KEY=ci-test-key" > .env
+          docker compose up -d llm-v1
+          # wait until healthy
+          timeout 300 sh -c 'until curl -sf localhost:8081/health; do sleep 5; done'
+
+      - name: Run eval gate
+        env:
+          API_KEY: ci-test-key
+        run: npx --yes promptfoo@latest eval -c promptfooconfig.yaml --no-cache
+        # non-zero exit fails the job -> merge blocked by branch protection
+
+      - name: Upload eval report
+        if: always()
+        run: npx --yes promptfoo@latest eval -c promptfooconfig.yaml -o eval-report.json || true
