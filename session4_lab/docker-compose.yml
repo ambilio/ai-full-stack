@@ -1,0 +1,45 @@
+# Session 4 — the model service plus its observability stack.
+# llm        : the instrumented model server (metrics + audit log)
+# prometheus : scrapes llm:8080/metrics every 5s, stores time series
+# grafana    : dashboards over Prometheus; pre-provisioned datasource + dashboard
+services:
+  llm:
+    build: .
+    image: llm-server:s4
+    env_file: .env
+    environment:
+      VERSION: v1
+    ports:
+      - "8080:8080"
+    volumes:
+      - ./logs:/app/logs            # audit.jsonl lands here on the host
+    mem_limit: 4g
+    cpus: 2
+    healthcheck:
+      test: ["CMD", "python", "-c",
+             "import urllib.request; urllib.request.urlopen('http://localhost:8080/health')"]
+      interval: 15s
+      timeout: 3s
+      retries: 20
+      start_period: 120s
+
+  prometheus:
+    image: prom/prometheus:v2.53.0
+    command: ["--config.file=/etc/prometheus/prometheus.yml"]
+    volumes:
+      # directory mount (not single-file) — see Session 3 NFS lesson
+      - ./prometheus:/etc/prometheus:ro
+    ports:
+      - "9090:9090"
+
+  grafana:
+    image: grafana/grafana:11.1.0
+    environment:
+      GF_SECURITY_ADMIN_USER: admin
+      GF_SECURITY_ADMIN_PASSWORD: admin
+    volumes:
+      - ./grafana/provisioning:/etc/grafana/provisioning:ro
+    ports:
+      - "3000:3000"
+    depends_on:
+      - prometheus
