@@ -1,0 +1,68 @@
+# Session 5 — shadow deployment stack.
+# llm-v1 = stable production (serves every user response).
+# llm-v2 = upgrade candidate (receives MIRRORED traffic only — 0% user exposure).
+# mirror = the traffic mirror on :8080, the ONE URL users call.
+services:
+  llm-v1:
+    build: .
+    image: llm-server:s5
+    env_file: .env
+    environment:
+      VERSION: v1
+      PROMPT_PREFIX: ""                    # stable behavior
+    ports:
+      - "8081:8080"                        # direct access for debugging
+    mem_limit: 4g
+    cpus: 2
+    extra_hosts:
+      # Lets the container reach the self-hosted Langfuse published on the
+      # host at :3005 (host.docker.internal works out of the box on
+      # Docker Desktop; host-gateway makes it work on Linux too).
+      - "host.docker.internal:host-gateway"
+    healthcheck: &hc
+      test: ["CMD", "python", "-c",
+             "import urllib.request; urllib.request.urlopen('http://localhost:8080/health')"]
+      interval: 15s
+      timeout: 3s
+      retries: 20
+      start_period: 120s
+
+  llm-v2:
+    image: llm-server:s5
+    env_file: .env
+    environment:
+      VERSION: v2
+      PROMPT_PREFIX: ${PREFIX_V2:-}        # the candidate change, from .env
+    ports:
+      - "8082:8080"                        # direct access for debugging
+    mem_limit: 4g
+    cpus: 2
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    healthcheck: *hc
+
+  mirror:
+    build: ./mirror
+    image: llm-mirror:s5
+    ports:
+      - "8080:8080"                        # the ONE stable URL users call
+    environment:
+      V1_URL: http://llm-v1:8080/generate
+      V2_URL: http://llm-v2:8080/generate
+    volumes:
+      # Directory mount, NOT a single-file mount: single-file bind mounts can
+      # go stale when the inode changes (common on NFS). Directory mounts
+      # always reflect the latest file — same lesson as Session 3's nginx dir.
+      - ./mirror:/app:ro
+    depends_on:
+      llm-v1:
+        condition: service_healthy
+      llm-v2:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "python", "-c",
+             "import urllib.request; urllib.request.urlopen('http://localhost:8080/health')"]
+      interval: 10s
+      timeout: 3s
+      retries: 5
+      start_period: 10s

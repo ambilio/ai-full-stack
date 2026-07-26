@@ -1,0 +1,40 @@
+# Session 5 — self-hosted Langfuse (LOCAL path).
+# Run as a SEPARATE stack:  docker compose -f docker-compose.langfuse.yml up -d
+# UI: http://localhost:3005 — create an organisation + project, copy the
+# pk-lf-/sk-lf- keys into .env, then (re)start the model stack.
+#
+# CLOUD path alternative: skip this file entirely and use the free tier at
+# https://cloud.langfuse.com — same LANGFUSE_HOST/PUBLIC_KEY/SECRET_KEY vars.
+services:
+  langfuse-db:
+    image: postgres:15
+    environment:
+      POSTGRES_USER: langfuse
+      POSTGRES_PASSWORD: langfuse          # lab-only credentials
+      POSTGRES_DB: langfuse
+    volumes:
+      - langfuse-db-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U langfuse"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+
+  langfuse:
+    image: langfuse/langfuse:2
+    depends_on:
+      langfuse-db:
+        condition: service_healthy
+    ports:
+      - "3005:3000"                        # course convention: Langfuse on 3005
+    environment:
+      DATABASE_URL: postgresql://langfuse:langfuse@langfuse-db:5432/langfuse
+      # Both secrets are lab-only; in production generate each with:
+      #   openssl rand -base64 32
+      NEXTAUTH_SECRET: lab-only-nextauth-secret-change-in-prod
+      SALT: lab-only-salt-change-in-prod
+      NEXTAUTH_URL: http://localhost:3005
+      TELEMETRY_ENABLED: "false"
+
+volumes:
+  langfuse-db-data:
