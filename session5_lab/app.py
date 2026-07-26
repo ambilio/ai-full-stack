@@ -4,7 +4,7 @@
 # with the model version, so v1 and v2 can be compared side by side in the UI.
 import os
 import time
-
+from datetime import datetime, timezone
 from fastapi import FastAPI, Header, HTTPException
 from pydantic import BaseModel
 from transformers import pipeline
@@ -60,7 +60,9 @@ def generate(req: Prompt, x_api_key: str = Header(default="")):
         raise HTTPException(status_code=401, detail="Invalid or missing X-API-Key")
 
     started = time.time()
+    start_dt = datetime.now(timezone.utc)
     out = generator(PROMPT_PREFIX + req.text, max_new_tokens=req.max_tokens)
+    end_dt = datetime.now(timezone.utc)
     answer = out[0]["generated_text"]
     latency_ms = round((time.time() - started) * 1000)
 
@@ -79,9 +81,16 @@ def generate(req: Prompt, x_api_key: str = Header(default="")):
             )
             trace.generation(
                 name="qwen-generate",
-                model=MODEL_NAME,
+                model=f"qwen2.5-0.5b-{VERSION}",
                 input=PROMPT_PREFIX + req.text,
                 output=answer,
+                start_time=start_dt,          # -> real latency in the UI
+                end_time=end_dt,
+                usage={                        # -> real token counts
+                    "input": len(generator.tokenizer.encode(PROMPT_PREFIX + req.text)),
+                    "output": len(generator.tokenizer.encode(answer)),
+                    "unit": "TOKENS",
+                },
                 metadata={
                     "model_version": VERSION,
                     "latency_ms": latency_ms,
