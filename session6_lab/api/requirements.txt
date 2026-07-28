@@ -1,0 +1,9 @@
+# ClaimAssist API — pinned dependencies
+fastapi==0.115.6
+uvicorn==0.32.1
+httpx==0.28.1
+pydantic==2.10.3
+# openai is the drop-in SDK alternative to the raw httpx calls in app.py
+# (same protocol, same base_url/api_key switch) — pinned here so students can
+# try the commented snippet in app.py without a new install.
+openai==1.57.4
