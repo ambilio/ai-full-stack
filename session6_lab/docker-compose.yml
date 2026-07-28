@@ -1,0 +1,47 @@
+# docker-compose.yml — ClaimAssist v1 (Session 6)
+#
+# Two services:
+#   model — the OpenAI-compatible model server (llm-server:openai), port 8090
+#   api   — the ClaimAssist API (FastAPI), port 8000
+#
+# The Streamlit UI runs ON THE HOST (streamlit run ui/chat_app.py, port 8501).
+# Containerising a hot-reloading dev UI adds friction without teaching value;
+# the production web front end arrives in Session 7 (Next.js).
+#
+# Local/cloud switch: the api service reads LLM_BASE_URL / LLM_API_KEY /
+# LLM_MODEL from .env — changing those three lines is the ONLY step needed to
+# point ClaimAssist at any OpenAI-compatible cloud provider.
+services:
+  model:
+    build: ./model_server
+    image: llm-server:openai
+    container_name: claimassist-model
+    ports:
+      - "8090:8090"
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8090/health')"]
+      interval: 15s
+      timeout: 3s
+      retries: 20
+      start_period: 120s   # model load takes up to ~2 min on CPU
+
+  api:
+    build: ./api
+    image: claimassist-api:v1
+    container_name: claimassist-api
+    ports:
+      - "8000:8000"
+    env_file: .env          # LLM_BASE_URL / LLM_API_KEY / LLM_MODEL — the only switch
+    environment:
+      CLAIMS_PATH: /app/data/claims.json
+    volumes:
+      - ./data:/app/data:ro   # mock data mounted read-only, not baked in
+    depends_on:
+      model:
+        condition: service_healthy   # API starts only once the model is ready
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8000/health')"]
+      interval: 10s
+      timeout: 3s
+      retries: 5
+      start_period: 15s
