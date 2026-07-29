@@ -1,0 +1,112 @@
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+body {
+  background: #0f1218;
+  color: #e6eaf2;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+}
+
+main.chat {
+  max-width: 720px;
+  margin: 0 auto;
+  height: 100vh;
+  display: flex;
+  flex-direction: column;
+  padding: 1rem;
+}
+
+header.bar {
+  padding: 0.75rem 0.25rem;
+  border-bottom: 1px solid #232a38;
+  font-weight: 700;
+  font-size: 1.05rem;
+}
+header.bar span {
+  color: #8a94a8;
+  font-weight: 400;
+  font-size: 0.85rem;
+  margin-left: 0.5rem;
+}
+
+.messages {
+  flex: 1;
+  overflow-y: auto;
+  padding: 1rem 0.25rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.empty {
+  color: #8a94a8;
+  font-size: 0.9rem;
+}
+
+.msg {
+  max-width: 85%;
+  padding: 0.6rem 0.85rem;
+  border-radius: 10px;
+  line-height: 1.45;
+  white-space: pre-wrap;
+  font-size: 0.95rem;
+}
+.msg .who {
+  display: block;
+  font-size: 0.7rem;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: #8a94a8;
+  margin-bottom: 0.25rem;
+}
+.msg.user {
+  align-self: flex-end;
+  background: #2b3a55;
+}
+.msg.assistant {
+  align-self: flex-start;
+  background: #1b2130;
+}
+.msg.error {
+  align-self: stretch;
+  background: #3a1f1f;
+  border: 1px solid #7a3a3a;
+  color: #f0b3a3;
+  font-size: 0.85rem;
+}
+
+form.composer {
+  display: flex;
+  gap: 0.5rem;
+  padding: 0.75rem 0.25rem;
+  border-top: 1px solid #232a38;
+}
+form.composer input {
+  flex: 1;
+  background: #1b2130;
+  border: 1px solid #2c3547;
+  border-radius: 8px;
+  color: #e6eaf2;
+  padding: 0.65rem 0.85rem;
+  font-size: 0.95rem;
+  outline: none;
+}
+form.composer input:focus {
+  border-color: #4a5b7d;
+}
+form.composer button {
+  background: #e8871e;
+  border: none;
+  border-radius: 8px;
+  color: #14181f;
+  font-weight: 700;
+  padding: 0 1.2rem;
+  cursor: pointer;
+}
+form.composer button:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
