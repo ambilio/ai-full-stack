@@ -1,6 +1,4 @@
-import { createDataStreamResponse } from "ai";
-
-// Server-side only: browser talks to this route; this route talks to ClaimAssist.
+// Server-side only: browser → this route → ClaimAssist /ask/stream → LiteLLM.
 const CLAIM_API_URL = process.env.CLAIM_API_URL || "http://localhost:8000";
 const CLAIM_API_KEY = process.env.CLAIM_API_KEY || "local-dev-key";
 
@@ -18,62 +16,91 @@ export async function POST(req: Request) {
     return new Response("No user message", { status: 400 });
   }
 
-  // Bridge ClaimAssist SSE ({token}) → AI SDK data stream that useChat expects.
-  return createDataStreamResponse({
-    async execute(dataStream) {
-      const res = await fetch(`${CLAIM_API_URL}/ask/stream`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          "X-API-Key": CLAIM_API_KEY,
-        },
-        body: JSON.stringify({
-          question,
-          claim_id: claim_id || null,
-        }),
-      });
+  const res = await fetch(`${CLAIM_API_URL}/ask/stream`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      "X-API-Key": CLAIM_API_KEY,
+    },
+    body: JSON.stringify({
+      question,
+      claim_id: claim_id || null,
+    }),
+  });
 
-      if (!res.ok || !res.body) {
-        const text = await res.text().catch(() => "");
-        throw new Error(
-          `ClaimAssist /ask/stream failed (${res.status}): ${text || res.statusText}`
-        );
-      }
+  if (!res.ok || !res.body) {
+    const text = await res.text().catch(() => "");
+    return new Response(
+      `ClaimAssist /ask/stream failed (${res.status}): ${text || res.statusText}`,
+      { status: 502 }
+    );
+  }
 
-      const reader = res.body.getReader();
-      const decoder = new TextDecoder();
+  const encoder = new TextEncoder();
+  const decoder = new TextDecoder();
+
+  // Emit the AI SDK 3 data-stream protocol that useChat understands
+  // (same format as toDataStreamResponse): lines like 0:"token"\n
+  const stream = new ReadableStream<Uint8Array>({
+    async start(controller) {
+      const reader = res.body!.getReader();
       let buffer = "";
 
-      while (true) {
-        const { done, value } = await reader.read();
-        if (done) break;
+      const writeText = (token: string) => {
+        controller.enqueue(encoder.encode(`0:${JSON.stringify(token)}\n`));
+      };
 
-        buffer += decoder.decode(value, { stream: true });
-        const lines = buffer.split("\n");
-        buffer = lines.pop() || "";
+      try {
+        while (true) {
+          const { done, value } = await reader.read();
+          if (done) break;
 
-        for (const raw of lines) {
-          const line = raw.trim();
-          if (!line.startsWith("data: ")) continue;
-          const data = line.slice("data: ".length).trim();
-          if (data === "[DONE]") return;
+          buffer += decoder.decode(value, { stream: true });
+          const lines = buffer.split("\n");
+          buffer = lines.pop() || "";
 
-          let event: { token?: string; error?: string };
-          try {
-            event = JSON.parse(data);
-          } catch {
-            continue;
-          }
+          for (const raw of lines) {
+            const line = raw.trim();
+            if (!line.startsWith("data: ")) continue;
+            const data = line.slice("data: ".length).trim();
+            if (data === "[DONE]") {
+              controller.close();
+              return;
+            }
 
-          if (event.error) {
-            throw new Error(event.error);
-          }
-          if (event.token) {
-            dataStream.write(`0:${JSON.stringify(event.token)}\n`);
+            let event: { token?: string; error?: string };
+            try {
+              event = JSON.parse(data);
+            } catch {
+              continue;
+            }
+
+            if (event.error) {
+              // 3: is the AI SDK error stream part
+              controller.enqueue(
+                encoder.encode(`3:${JSON.stringify(event.error)}\n`)
+              );
+              controller.close();
+              return;
+            }
+            if (event.token) {
+              writeText(event.token);
+            }
           }
         }
+        controller.close();
+      } catch (err) {
+        const msg = err instanceof Error ? err.message : String(err);
+        controller.enqueue(encoder.encode(`3:${JSON.stringify(msg)}\n`));
+        controller.close();
       }
     },
-    onError: (err) => (err instanceof Error ? err.message : String(err)),
+  });
+
+  return new Response(stream, {
+    headers: {
+      "Content-Type": "text/plain; charset=utf-8",
+      "X-Vercel-AI-Data-Stream": "v1",
+    },
   });
 }
