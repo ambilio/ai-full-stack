@@ -13,6 +13,13 @@ model_list:
       api_base: http://model:8090/v1    # compose service name, not localhost
       api_key: local                    # any string — the shim ignores it
 
+
+  - model_name: openrouter-mini
+    litellm_params:
+      model: openrounter/openai/gpt-4o-mini        # provider/model-id sent upstream
+      api_base: https://openrouter.ai/api/v1    # compose service name, not localhost
+      api_key: os.environ/OPENROUTER_API_KEY                    # any string — the shim ignores it
+
   # ---- CLOUD PATH (optional) — uncomment ONE or more + set its env keys ----
   # OpenAI — needs OPENAI_API_KEY in .env
   # - model_name: gpt-4o-mini
