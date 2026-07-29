@@ -53,7 +53,7 @@ router_settings:
   # If qwen-local fails (container down, timeout), route the SAME request to
   # gpt-4o-mini — provided that entry is uncommented above with a valid key.
   # Without a cloud entry, LiteLLM retries and then returns a clean error.
-  fallbacks: [{"qwen-local": ["gpt-4o-mini"]}]
+  fallbacks: [{"qwen-local": ["openrouter-mini"]}]
   num_retries: 2
 
 # ---- Cost-based routing (discussion, Step 5) --------------------------------
