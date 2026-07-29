@@ -16,7 +16,7 @@ model_list:
 
   - model_name: openrouter-mini
     litellm_params:
-      model: openrounter/openai/gpt-4o-mini        # provider/model-id sent upstream
+      model: openrouter/openai/gpt-4o-mini        # provider/model-id sent upstream
       api_base: https://openrouter.ai/api/v1    # compose service name, not localhost
       api_key: os.environ/OPENROUTER_API_KEY                    # any string — the shim ignores it
 
