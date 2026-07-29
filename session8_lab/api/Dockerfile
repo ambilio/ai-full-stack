@@ -12,8 +12,9 @@ WORKDIR /app
 # deps first: cached layer
 COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
-
 # app code last: changes most often
+
+RUN mkdir -p /home/appuser/.cache/chroma && chown -R appuser /home/appuser/.cache/chroma
 COPY app.py .
 RUN chown -R appuser /app
 
