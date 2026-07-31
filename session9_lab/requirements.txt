@@ -1,0 +1,6 @@
+# Host-side tools for Session 9 (Step 0 ingest + Step 1 inspection):
+#   python rag/ingest.py          needs chromadb
+#   python scripts/list_tools.py  needs mcp
+# The API container installs its own copies from api/requirements.txt.
+mcp==1.9.4
+chromadb==0.5.23

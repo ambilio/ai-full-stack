@@ -1,0 +1,8 @@
+fastapi==0.111.0
+uvicorn==0.30.1
+pydantic==2.8.2
+httpx==0.27.0
+# NEW in v4 (Session 9): the official MCP Python SDK (pin 1.x) and Chroma
+# (backs the search_policy tool with the Session 8 clause index).
+mcp==1.9.4
+chromadb==0.5.23
