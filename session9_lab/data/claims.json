@@ -1,0 +1,80 @@
+[
+  {
+    "claim_id": "CLM-1001",
+    "customer_name": "Asha Verma",
+    "policy_no": "POL-88231",
+    "type": "motor",
+    "status": "Under Review",
+    "filed_date": "2026-07-01",
+    "last_update": "2026-07-18",
+    "amount_claimed_inr": 84500,
+    "amount_approved_inr": null,
+    "next_step": "Surveyor report awaited",
+    "notes": "Garage estimate received"
+  },
+  {
+    "claim_id": "CLM-1002",
+    "customer_name": "Rohit Menon",
+    "policy_no": "POL-11907",
+    "type": "health",
+    "status": "Approved",
+    "filed_date": "2026-06-20",
+    "last_update": "2026-07-10",
+    "amount_claimed_inr": 220000,
+    "amount_approved_inr": 198000,
+    "next_step": "Payment processing, 3-5 working days",
+    "notes": "Room-rent cap applied per clause H-4.2"
+  },
+  {
+    "claim_id": "CLM-1003",
+    "customer_name": "Fatima Khan",
+    "policy_no": "POL-55672",
+    "type": "motor",
+    "status": "Rejected",
+    "filed_date": "2026-06-28",
+    "last_update": "2026-07-15",
+    "amount_claimed_inr": 41200,
+    "amount_approved_inr": 0,
+    "next_step": "Appeal window open until 2026-08-15",
+    "notes": "Driver licence expired on accident date, clause M-2.3"
+  },
+  {
+    "claim_id": "CLM-1004",
+    "customer_name": "Vikram Singh",
+    "policy_no": "POL-88231",
+    "type": "motor",
+    "status": "Paid",
+    "filed_date": "2026-05-11",
+    "last_update": "2026-06-02",
+    "amount_claimed_inr": 156000,
+    "amount_approved_inr": 149500,
+    "next_step": "Closed",
+    "notes": "Depreciation deducted per M-5.1"
+  },
+  {
+    "claim_id": "CLM-1005",
+    "customer_name": "Priya Nair",
+    "policy_no": "POL-73310",
+    "type": "health",
+    "status": "Received",
+    "filed_date": "2026-07-19",
+    "last_update": "2026-07-19",
+    "amount_claimed_inr": 67800,
+    "amount_approved_inr": null,
+    "next_step": "Document verification in progress",
+    "notes": "Discharge summary pending from hospital"
+  },
+  {
+    "claim_id": "CLM-1006",
+    "customer_name": "Arjun Rao",
+    "policy_no": "POL-99120",
+    "type": "health",
+    "status": "Under Review",
+    "filed_date": "2026-07-08",
+    "last_update": "2026-07-20",
+    "amount_claimed_inr": 310000,
+    "amount_approved_inr": null,
+    "next_step": "Medical officer review",
+    "notes": "Pre-existing condition check under clause H-7.1"
+  }
+]

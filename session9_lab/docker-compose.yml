@@ -1,0 +1,79 @@
+# ClaimAssist v4 — Session 9 stack
+#   model   :8090  local Qwen with an OpenAI-compatible API (llm-server:openai)
+#   litellm :4000  the provider-abstraction proxy (Session 7)
+#   api     :8000  ClaimAssist API — now with POST /agent (NEW in v4)
+#
+# WHERE IS THE MCP SERVER? There is deliberately NO "mcp" service here.
+# mcp_server/server.py uses the stdio transport: the agent code inside the
+# api container spawns it as a CHILD PROCESS and speaks JSON-RPC over
+# stdin/stdout. No port, no network exposure, no extra container — that is a
+# feature of the stdio transport, not an omission. (Remote MCP servers over
+# Streamable HTTP/SSE would be separate services with auth — see the README's
+# local -> production mapping.)
+#
+# The Streamlit UI (ui/chat_app.py, port 8501) runs on the host.
+
+services:
+  model:
+    build: ./model_server
+    image: llm-server:openai
+    ports:
+      - "8090:8090"
+    volumes:
+      - hf_cache:/home/appuser/.cache/huggingface   # model download survives recreation
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8090/health', timeout=3)"]
+      interval: 15s
+      timeout: 5s
+      retries: 30
+      start_period: 180s   # first start downloads ~1 GB of weights
+
+  litellm:
+    image: ghcr.io/berriai/litellm:main-stable
+    ports:
+      - "4000:4000"
+    volumes:
+      - ./litellm:/app/litellm:ro   # directory mount, read-only
+    command: ["--config", "/app/litellm/config.yaml", "--port", "4000"]
+    env_file:
+      - .env                        # cloud keys / LITELLM_MASTER_KEY, if set
+    depends_on:
+      - model                       # start order only; litellm boots fine alone
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:4000/health/liveliness', timeout=3)"]
+      interval: 15s
+      timeout: 5s
+      retries: 10
+      start_period: 30s
+
+  api:
+    build: ./api
+    ports:
+      - "8000:8000"
+    volumes:
+      - ./data:/app/data:ro               # claims + policy documents
+      - ./mcp_server:/app/mcp_server:ro   # the MCP server (spawned via stdio)
+      - ./agent:/app/agent:ro             # loop.py + local_router.py
+      - ./rag:/app/rag                    # Chroma index (run rag/ingest.py FIRST);
+                                          # rw — Chroma's sqlite needs write access
+    environment:
+      LLM_BASE_URL: http://litellm:4000/v1
+      LLM_API_KEY: ${LITELLM_MASTER_KEY:-local}
+      LLM_MODEL: ${LLM_MODEL:-openrouter-mini}
+      API_KEY: ${API_KEY:-local-dev-key}
+      # Agent runner:
+      #   llm (default): real function calling via openrouter-mini
+      #   router:        deterministic intent routing (offline / 0.5B)
+      AGENT_MODE: ${AGENT_MODE:-llm}
+    depends_on:
+      litellm:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8000/health', timeout=3)"]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+
+volumes:
+  hf_cache:
