@@ -1,0 +1,39 @@
+# Langfuse self-hosted (LOCAL PATH) — Session 10
+#   docker compose -f docker-compose.langfuse.yml up -d
+#   UI: http://localhost:3005  (create an org, a project, then API keys)
+#
+# CLOUD PATH: skip this file entirely — create a free project at
+# https://cloud.langfuse.com and put its keys + host into .env instead.
+# The application code is identical either way; only three env vars differ.
+
+services:
+  langfuse-db:
+    image: postgres:15
+    environment:
+      POSTGRES_USER: langfuse
+      POSTGRES_PASSWORD: langfuse       # lab-only credentials; rotate in production
+      POSTGRES_DB: langfuse
+    volumes:
+      - langfuse_pg:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U langfuse"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  langfuse:
+    image: langfuse/langfuse:2
+    depends_on:
+      langfuse-db:
+        condition: service_healthy
+    ports:
+      - "3005:3000"                     # course convention: Langfuse on 3005
+    environment:
+      DATABASE_URL: postgresql://langfuse:langfuse@langfuse-db:5432/langfuse
+      NEXTAUTH_SECRET: change-me-nextauth-secret     # any random string (lab)
+      SALT: change-me-salt                           # any random string (lab)
+      NEXTAUTH_URL: http://localhost:3005
+      TELEMETRY_ENABLED: "false"
+
+volumes:
+  langfuse_pg:
